@@ -1,0 +1,135 @@
+const express = require("express");
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+
+const app = express();
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static("public"));
+
+// Connect MongoDB
+mongoose.connect("mongodb://127.0.0.1:27017/fitlife")
+.then(() => console.log("MongoDB Connected"))
+.catch(err => console.log(err));
+
+// Create Schema
+const userSchema = new mongoose.Schema({
+    name: String,
+    email: String,
+    password: String
+});
+
+const User = mongoose.model("User", userSchema);
+
+// Handle Registration
+app.post("/register", async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+
+        const existingUser = await User.findOne({ email });
+
+        if (existingUser) {
+            return res.send("Email already registered!");
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = new User({
+            name,
+            email,
+            password: hashedPassword
+        });
+
+        await user.save();
+
+        res.send("Registration Successful!");
+
+    } catch (error) {
+        res.status(500).send("Registration Failed!");
+    }
+});
+
+// Start Server
+app.listen(3000, () => {
+    console.log("Server running at http://localhost:3000");
+});
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FitLife Mobile App</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #eef2ff;
+            text-align: center;
+            margin: 0;
+        }
+
+        nav {
+            background: #222;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            background: white;
+            width: 320px;
+            margin: 50px auto;
+            padding: 25px;
+            border-radius: 10px;
+        }
+
+        input {
+            width: 90%;
+            padding: 12px;
+            margin: 10px;
+        }
+
+        button {
+            background: blue;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<nav>
+    <h2>FitLife Mobile App</h2>
+    <p>Your Fitness Journey Starts Here!</p>
+</nav>
+
+<div class="container">
+
+    <h2>User Registration</h2>
+
+    <form action="/register" method="POST">
+
+        <input type="text"
+               name="name"
+               placeholder="Enter Name"
+               required>
+
+        <input type="email"
+               name="email"
+               placeholder="Enter Email"
+               required>
+
+        <input type="password"
+               name="password"
+               placeholder="Enter Password"
+               minlength="6"
+               required>
+
+        <button type="submit">Register</button>
+
+    </form>
+
+</div>
+
+</body>
+</html>
